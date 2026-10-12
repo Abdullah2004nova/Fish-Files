@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FISH FILES - File Converter</title>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <style>
+        :root {
+            --bg:#e8f4f8; --surface:#fff; --surface2:#f0f9f6;
+            --text:#0b3b3b; --text2:#2d6a6a; --border:#b2d9d9;
+            --primary:#0d9488; --primary-light:#5eead4;
+            --danger:#e11d48; --success:#059669; --warning:#d97706;
+            --shadow:0 4px 20px rgba(13,148,136,0.08);
+            --radius:16px; --radius-sm:10px; --transition:0.2s ease;
+            --text3d-main:#a7f3d0; --text3d-shadow:#0d9488;
+        }
+        .dark {
+            --bg:#0a1f1f; --surface:#0f2e2e; --surface2:#143d3d;
+            --text:#e0f2f2; --text2:#99cccc; --border:#1f4d4d;
+            --primary:#14b8a6; --primary-light:#5eead4;
+            --danger:#fb7185; --success:#34d399; --warning:#fbbf24;
+            --shadow:0 4px 20px rgba(0,0,0,0.4);
+            --text3d-main:#99f6e4; --text3d-shadow:#0d9488;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background var(--transition),color var(--transition)}
+        .header{background:var(--surface);border-bottom:1px solid var(--border);padding:20px 24px;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);transition:background var(--transition),border var(--transition)}
+        #darkToggle{position:absolute;right:24px;top:50%;transform:translateY(-50%)}
+        .text-3d{font-size:2.2rem;font-weight:900;letter-spacing:-1px;color:var(--text3d-main);display:inline-block;transform:perspective(400px) rotateX(10deg) rotateY(-3deg);text-shadow:0px 1px 0 var(--text3d-shadow),0px 2px 0 var(--text3d-shadow),0px 3px 0 var(--text3d-shadow),0px 4px 0 var(--text3d-shadow),0px 5px 0 var(--text3d-shadow),0px 6px 0 var(--text3d-shadow),0px 7px 0 var(--text3d-shadow),0px 8px 0 var(--text3d-shadow),0px 9px 0 var(--text3d-shadow),0px 10px 4px rgba(0,0,0,.2),0px 15px 15px rgba(0,0,0,.1);transition:transform .2s;line-height:1}
+        .text-3d:hover{transform:perspective(400px) rotateX(14deg) rotateY(-8deg) scale(1.05)}
+        .btn{padding:9px 18px;border-radius:25px;border:none;cursor:pointer;font-weight:600;font-size:.9rem;transition:all var(--transition);display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff}
+        .btn:hover{background:#5a4bd1;transform:translateY(-1px);box-shadow:0 6px 20px rgba(108,92,231,.35)}
+        .btn-outline{background:transparent;border:2px solid var(--border);color:var(--text)}
+        .btn-outline:hover{border-color:var(--primary);color:var(--primary);background:transparent}
+        .btn-icon{width:38px;height:38px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);cursor:pointer;font-size:1.1rem;color:var(--text)}
+        .btn-danger{background:var(--danger);color:#fff}
+        .btn-danger:hover{background:#b01235;transform:translateY(-1px)}
+        .main-container{display:flex;max-width:1200px;margin:40px auto;gap:20px;padding:0 20px 40px;flex-wrap:wrap}
+        .sidebar{flex:0 0 220px;background:var(--surface);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1px solid var(--border);height:fit-content;position:sticky;top:90px}
+        .sidebar h3{margin-bottom:12px;font-size:.9rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2)}
+        .tool-item{display:block;width:100%;padding:10px 14px;margin-bottom:4px;border-radius:8px;cursor:pointer;font-weight:500;font-size:.9rem;border:none;background:transparent;color:var(--text);text-align:left;transition:all var(--transition)}
+        .tool-item:hover{background:var(--surface2)}
+        .tool-item.active{background:var(--primary);color:#fff;font-weight:600}
+        .sidebar-footer{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+        .content{flex:1;min-width:300px}
+        .tool-panel{background:var(--surface);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);border:1px solid var(--border)}
+        .tool-panel h2{margin-bottom:16px;font-size:1.3rem;display:flex;align-items:center;gap:8px}
+        .upload-area{border:2px dashed var(--border);border-radius:var(--radius-sm);padding:30px;text-align:center;cursor:pointer;transition:all var(--transition);background:var(--surface2);margin-bottom:20px}
+        .upload-area:hover,.upload-area.dragover{border-color:var(--primary);background:rgba(108,92,231,.06)}
+        canvas{max-width:100%;border-radius:var(--radius-sm)}
+        .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+        input[type="file"]{display:none}
+        input[type="number"],select{padding:8px 12px;border-radius:20px;border:2px solid var(--border);background:var(--surface2);color:var(--text);font-size:.9rem;outline:none}
+        .form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+        .preview-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+        .preview-slice{position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+        .preview-slice img{display:block;max-width:150px}
+        .preview-slice button{position:absolute;bottom:4px;right:4px;background:var(--primary);color:#fff;border:none;border-radius:4px;padding:2px 6px;font-size:.7rem;cursor:pointer}
+        .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:12px 24px;border-radius:25px;font-weight:600;z-index:999;box-shadow:0 8px 30px rgba(0,0,0,.2);animation:toastIn .4s ease,toastOut .3s ease 2.2s forwards}
+        @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+        @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(-50%) translateY(20px)}}
+        @media(max-width:768px){.main-container{flex-direction:column}.sidebar{position:static;flex:auto}.text-3d{font-size:1.8rem}}
+        .view-btn{width:28px;height:28px;font-size:.8rem;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:box-shadow .2s}
+        .view-btn.pulse{animation:pulseGlow 1.2s infinite alternate}
+        @keyframes pulseGlow{from{box-shadow:0 0 4px var(--primary)}to{box-shadow:0 0 14px var(--primary),0 0 6px var(--primary-light)}}
+        .pdf-preview{margin-top:6px;border-radius:8px;border:1px solid var(--border);overflow:hidden}
+        .pdf-preview iframe{width:100%;height:300px;border:none}
+        .crop-handle{position:absolute;width:10px;height:10px;background:#ff6b6b;border:2px solid white;border-radius:50%;cursor:crosshair;pointer-events:auto;transform:translate(-50%,-50%);z-index:5;box-shadow:0 0 4px rgba(0,0,0,.3)}
+        /* Security flush modal */
+        .flush-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center}
+        .flush-modal-overlay.show{display:flex}
+        .flush-modal{background:var(--surface);border-radius:var(--radius);padding:28px 32px;max-width:400px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.3);text-align:center}
+        .flush-modal h3{font-size:1.3rem;margin-bottom:10px;color:var(--danger)}
+        .flush-modal p{color:var(--text2);font-size:.95rem;margin-bottom:20px}
+        .flush-modal .modal-btns{display:flex;gap:10px;justify-content:center}
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <img src="logo.png" alt="Fish Files" style="height:100px;width:auto;border-radius:8px" draggable="false">
+        </div>
+        <button class="btn-icon" id="darkToggle" title="Toggle dark mode">🌓</button>
+    </header>
+
+    <div class="main-container">
+        <aside class="sidebar">
+            <h3>📷 Image Tools</h3>
+            
+            <button class="tool-item active" data-tool="crop">✂️ Crop</button>
+            <button class="tool-item" data-tool="resize">📏 Resize</button>
+            <button class="tool-item" data-tool="rotate">🔄 Rotate/Flip</button>
+            <button class="tool-item" data-tool="convert">🖼️ Convert Format</button>
+            <button class="tool-item" data-tool="merge-img">🧩 Merge Images</button>
+            <button class="tool-item" data-tool="split-img">🔲 Split Image</button>
+            <h3 style="margin-top:20px">📄 PDF Tools</h3>
+            
+            <button class="tool-item" data-tool="merge-pdf">📎 Merge PDF</button>
+            <button class="tool-item" data-tool="split-pdf">✂️ Split PDF</button>
+            <h3 style="margin-top:20px">📊 Presentation</h3>
+            <button class="tool-item" data-tool="ppt-pdf">📽️ PPT → PDF</button>
+            <div class="sidebar-footer">
+                <button class="btn btn-danger" id="securityFlushBtn" style="width:100%;justify-content:center">🔒 Security Flush</button>
+            </div>
+        </aside>
+        <main class="content" id="toolContent"></main>
+    </div>
+
+    <!-- Security Flush Confirmation Modal -->
+    <div class="flush-modal-overlay" id="flushModal">
+        <div class="flush-modal">
+            <h3>🔒 Security Flush</h3>
+            <p>This will permanently clear all uploaded files, previews, and memory references from this session. Any undownloaded work will be lost.</p>
+            <div class="modal-btns">
+                <button class="btn btn-danger" id="confirmFlush">Yes, Flush All Data</button>
+                <button class="btn btn-outline" id="cancelFlush">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        /* ── Global object URL tracker for cleanup ── */
+        const _trackedURLs = [];
+        const _origCreateObjectURL = URL.createObjectURL.bind(URL);
+        URL.createObjectURL = function (obj) {
+            const url = _origCreateObjectURL(obj);
+            _trackedURLs.push(url);
+            return url;
+        };
+
+        /* ── Shared state ── */
+        const toolContent = document.getElementById('toolContent');
+        const darkToggle  = document.getElementById('darkToggle');
+        const toolItems   = document.querySelectorAll('.tool-item');
+
+        /* ── Utilities ── */
+        function showToast(msg) {
+            document.querySelector('.toast')?.remove();
+            const t = Object.assign(document.createElement('div'), { className: 'toast', textContent: msg });
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2600);
+        }
+
+        function download(blob, name) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = name;
+            a.click();
+        }
+
+        function createUploadArea(panel, accept, multiple, onFiles) {
+            const div = document.createElement('div');
+            div.className = 'upload-area';
+            div.innerHTML = `<p>📁 Drag & drop or click to upload ${accept.replace('image/*', 'images').replace('.pdf', 'PDF')}</p>`;
+            const input = Object.assign(document.createElement('input'), { type: 'file', accept, multiple });
+            div.appendChild(input);
+            div.addEventListener('click', () => input.click());
+            div.addEventListener('dragover', e => { e.preventDefault(); div.classList.add('dragover'); });
+            div.addEventListener('dragleave', () => div.classList.remove('dragover'));
+            div.addEventListener('drop', e => { e.preventDefault(); div.classList.remove('dragover'); if (e.dataTransfer.files.length) onFiles(Array.from(e.dataTransfer.files)); });
+            input.addEventListener('change', () => { if (input.files.length) onFiles(Array.from(input.files)); });
+            panel.appendChild(div);
+            return { div, input };
+        }
+
+        function mkBtn(text, cls = 'btn') {
+            return Object.assign(document.createElement('button'), { className: cls, textContent: text });
+        }
+
+        function mkInput(type, attrs = {}) {
+            return Object.assign(document.createElement('input'), { type, ...attrs });
+        }
+
+        /* ── Dark mode ── */
+        function initDark() {
+            const stored = localStorage.getItem('FISHFILES-dark');
+            if (stored === 'true' || (stored === null && matchMedia('(prefers-color-scheme:dark)').matches))
+                document.body.classList.add('dark');
+        }
+        darkToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('FISHFILES-dark', document.body.classList.contains('dark'));
+        });
+
+        /* ── Security Flush ── */
+        const flushModal  = document.getElementById('flushModal');
+        document.getElementById('securityFlushBtn').addEventListener('click', () => flushModal.classList.add('show'));
+        document.getElementById('cancelFlush').addEventListener('click', () => flushModal.classList.remove('show'));
+        document.getElementById('confirmFlush').addEventListener('click', () => {
+            // Revoke all tracked object URLs
+            _trackedURLs.forEach(u => { try { URL.revokeObjectURL(u); } catch (_) {} });
+            _trackedURLs.length = 0;
+            // Clear all tool state by re-rendering current tool panel blank
+            toolContent.innerHTML = '';
+            const notice = document.createElement('div');
+            notice.className = 'tool-panel';
+            notice.style.textAlign = 'center';
+            notice.style.padding = '48px 24px';
+            notice.innerHTML = `<div style="font-size:3rem">🔒</div>
+                <h2 style="margin:12px 0 8px;color:var(--success)">Session Flushed</h2>
+                <p style="color:var(--text2)">All uploaded files and object references have been cleared from memory.<br>Select a tool from the sidebar to start fresh.</p>`;
+            toolContent.appendChild(notice);
+            // Deselect active tool in sidebar
+            toolItems.forEach(i => i.classList.remove('active'));
+            flushModal.classList.remove('show');
+            showToast('🔒 All data securely flushed!');
+        });
+
+        /* ── Tool switching ── */
+        function switchTool(tool) {
+            toolItems.forEach(i => i.classList.remove('active'));
+            document.querySelector(`.tool-item[data-tool="${tool}"]`)?.classList.add('active');
+            toolContent.innerHTML = '';
+            const panel = Object.assign(document.createElement('div'), { className: 'tool-panel', id: `panel-${tool}` });
+            toolContent.appendChild(panel);
+            ({ crop: initCropTool, resize: initResizeTool, rotate: initRotateTool, convert: initConvertTool, 'ppt-pdf': initPptToPdfTool,
+               'merge-img': initMergeImgTool, 'split-img': initSplitImgTool,
+               'merge-pdf': initMergePDFTool, 'split-pdf': initSplitPDFTool })[tool]?.(panel);
+        }
+        toolItems.forEach(item => item.addEventListener('click', () => switchTool(item.dataset.tool)));
+
+        /* ═══════════════════════════════════════════
+           CROP TOOL
+        ═══════════════════════════════════════════ */
+        function initCropTool(panel) {
+            panel.innerHTML = `<h2>✂️ Crop Image</h2>`;
+            let img, canvas, ctx, previewCanvas, previewCtx, container;
+            let cropCSS = null, action = 'idle', startPos = {}, activeHandle = null;
+            let zoomLevel = 1, showCheckerboard = false;
+
+            const getCSSMouse = e => { const r = container.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+            const cssCropToImg = () => cropCSS ? { x: cropCSS.x / zoomLevel, y: cropCSS.y / zoomLevel, w: cropCSS.w / zoomLevel, h: cropCSS.h / zoomLevel } : null;
+
+            function updateOverlay() {
+                const o = document.getElementById('cropOverlay');
+                if (!o) return;
+                const show = cropCSS && cropCSS.w > 0 && cropCSS.h > 0;
+                Object.assign(o.style, { display: show ? 'block' : 'none', left: (cropCSS?.x || 0) + 'px', top: (cropCSS?.y || 0) + 'px', width: (cropCSS?.w || 0) + 'px', height: (cropCSS?.h || 0) + 'px' });
+            }
+
+            function updateHandles() {
+                const h = document.getElementById('cropHandles');
+                if (!h) return;
+                h.innerHTML = '';
+                if (!cropCSS) return;
+                [['tl', cropCSS.x, cropCSS.y], ['tr', cropCSS.x + cropCSS.w, cropCSS.y],
+                 ['bl', cropCSS.x, cropCSS.y + cropCSS.h], ['br', cropCSS.x + cropCSS.w, cropCSS.y + cropCSS.h]]
+                .forEach(([id, x, y]) => {
+                    const el = Object.assign(document.createElement('div'), { className: 'crop-handle', dataset: { handle: id } });
+                    Object.assign(el.style, { left: x + 'px', top: y + 'px' });
+                    h.appendChild(el);
+                });
+            }
+
+            function updatePreview() {
+                if (!previewCanvas || !cropCSS || cropCSS.w <= 0 || cropCSS.h <= 0) { if (previewCanvas) previewCanvas.style.display = 'none'; return; }
+                const ic = cssCropToImg();
+                const scale = Math.min(150 / ic.w, 150 / ic.h, 1);
+                previewCanvas.width = ic.w * scale; previewCanvas.height = ic.h * scale;
+                previewCanvas.style.display = 'block';
+                previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+                previewCtx.drawImage(canvas, ic.x, ic.y, ic.w, ic.h, 0, 0, previewCanvas.width, previewCanvas.height);
+            }
+
+            createUploadArea(panel, 'image/*', false, files => {
+                img = new Image();
+                img.src = URL.createObjectURL(files[0]);
+                img.onload = () => {
+                    container = Object.assign(document.createElement('div'), { style: 'position:relative;display:inline-block;background:#fff;border-radius:8px;overflow:hidden;margin-top:12px' });
+                    canvas = document.createElement('canvas');
+                    canvas.width = img.width; canvas.height = img.height;
+                    Object.assign(canvas.style, { display: 'block', transform: `scale(${zoomLevel})`, transformOrigin: 'top left', cursor: 'crosshair' });
+                    ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    const overlay = Object.assign(document.createElement('div'), { id: 'cropOverlay' });
+                    Object.assign(overlay.style, { position: 'absolute', border: '2px dashed #ff6b6b', pointerEvents: 'none', display: 'none' });
+                    const handlesDiv = Object.assign(document.createElement('div'), { id: 'cropHandles' });
+                    Object.assign(handlesDiv.style, { position: 'absolute', top: '0', left: '0', width: '100%', height: '100%', pointerEvents: 'none' });
+                    container.append(canvas, overlay, handlesDiv);
+                    panel.appendChild(container);
+
+                    // Zoom row
+                    const zoomRow = document.createElement('div');
+                    Object.assign(zoomRow.style, { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' });
+                    const zoomSlider = mkInput('range', { min: '0.2', max: '3', step: '0.1', value: '1' });
+                    const zoomLabel = Object.assign(document.createElement('span'), { textContent: '100%' });
+                    const checkerBtn = mkBtn('🧱 Checkerboard', 'btn btn-outline');
+                    checkerBtn.addEventListener('click', () => {
+                        showCheckerboard = !showCheckerboard;
+                        checkerBtn.textContent = `🧱 Checkerboard${showCheckerboard ? ' (on)' : ''}`;
+                        container.style.background = showCheckerboard ? `repeating-conic-gradient(#f0f0f0 0% 25%,transparent 0% 50%) 0 0/20px 20px` : '#fff';
+                    });
+                    zoomRow.innerHTML = '<span>🔍 Zoom:</span>';
+                    zoomRow.append(zoomSlider, zoomLabel, checkerBtn);
+                    panel.appendChild(zoomRow);
+                    zoomSlider.addEventListener('input', e => {
+                        zoomLevel = parseFloat(e.target.value);
+                        canvas.style.transform = `scale(${zoomLevel})`;
+                        zoomLabel.textContent = Math.round(zoomLevel * 100) + '%';
+                        updateOverlay(); updateHandles(); updatePreview();
+                    });
+
+                    // Preview area
+                    const previewDiv = document.createElement('div');
+                    previewDiv.style.marginTop = '10px';
+                    previewDiv.innerHTML = '<strong>Preview of cropped area:</strong>';
+                    previewCanvas = document.createElement('canvas');
+                    Object.assign(previewCanvas.style, { display: 'none', border: '1px solid var(--border)', borderRadius: '6px', marginTop: '4px' });
+                    previewCtx = previewCanvas.getContext('2d');
+                    previewDiv.appendChild(previewCanvas);
+                    panel.appendChild(previewDiv);
+
+                    // Pointer events
+                    canvas.addEventListener('pointerdown', e => {
+                        e.preventDefault(); canvas.setPointerCapture(e.pointerId);
+                        const p = getCSSMouse(e);
+                        if (cropCSS) {
+                            const handles = [['tl',cropCSS.x,cropCSS.y],['tr',cropCSS.x+cropCSS.w,cropCSS.y],['bl',cropCSS.x,cropCSS.y+cropCSS.h],['br',cropCSS.x+cropCSS.w,cropCSS.y+cropCSS.h]];
+                            const hit = handles.find(([,hx,hy]) => Math.abs(hx-p.x)<8 && Math.abs(hy-p.y)<8);
+                            if (hit) { action='resize'; activeHandle=hit[0]; startPos={x:p.x,y:p.y,...{cropX:cropCSS.x,cropY:cropCSS.y,cropW:cropCSS.w,cropH:cropCSS.h}}; return; }
+                            if (p.x>=cropCSS.x&&p.x<=cropCSS.x+cropCSS.w&&p.y>=cropCSS.y&&p.y<=cropCSS.y+cropCSS.h) { action='move'; startPos={x:p.x,y:p.y,cropX:cropCSS.x,cropY:cropCSS.y}; return; }
+                        }
+                        action='draw'; startPos={x:p.x,y:p.y}; cropCSS=null; updateOverlay(); updateHandles(); updatePreview();
+                    });
+                    canvas.addEventListener('pointermove', e => {
+                        const p = getCSSMouse(e);
+                        if (action==='idle') return;
+                        if (action==='draw') { cropCSS={x:Math.min(startPos.x,p.x),y:Math.min(startPos.y,p.y),w:Math.abs(p.x-startPos.x),h:Math.abs(p.y-startPos.y)}; }
+                        else if (action==='move') {
+                            const mL=container.clientWidth-cropCSS.w, mT=container.clientHeight-cropCSS.h;
+                            cropCSS.x=Math.max(0,Math.min(mL,startPos.cropX+(p.x-startPos.x)));
+                            cropCSS.y=Math.max(0,Math.min(mT,startPos.cropY+(p.y-startPos.y)));
+                        } else if (action==='resize') {
+                            const dx=p.x-startPos.x, dy=p.y-startPos.y, {cropX:cx,cropY:cy,cropW:cw,cropH:ch}=startPos;
+                            if (activeHandle==='tl') { cropCSS.x=cx+dx; cropCSS.y=cy+dy; cropCSS.w=cw-dx; cropCSS.h=ch-dy; }
+                            else if (activeHandle==='tr') { cropCSS.y=cy+dy; cropCSS.w=cw+dx; cropCSS.h=ch-dy; }
+                            else if (activeHandle==='bl') { cropCSS.x=cx+dx; cropCSS.w=cw-dx; cropCSS.h=ch+dy; }
+                            else { cropCSS.w=cw+dx; cropCSS.h=ch+dy; }
+                            if (cropCSS.w<10) cropCSS.w=10; if (cropCSS.h<10) cropCSS.h=10;
+                            if (cropCSS.x<0){cropCSS.w+=cropCSS.x;cropCSS.x=0;} if (cropCSS.y<0){cropCSS.h+=cropCSS.y;cropCSS.y=0;}
+                            const cW=container.clientWidth,cH=container.clientHeight;
+                            if (cropCSS.x+cropCSS.w>cW)cropCSS.w=cW-cropCSS.x; if (cropCSS.y+cropCSS.h>cH)cropCSS.h=cH-cropCSS.y;
+                        }
+                        updateOverlay(); updateHandles(); updatePreview();
+                    });
+                    canvas.addEventListener('pointerup', () => { if (action!=='idle'&&cropCSS&&cropCSS.w<5&&cropCSS.h<5) cropCSS=null; action='idle'; activeHandle=null; updateOverlay(); updateHandles(); updatePreview(); });
+
+                    // Crop & Clear buttons
+                    const btnRow = document.createElement('div');
+                    Object.assign(btnRow.style,{display:'flex',gap:'8px',marginTop:'10px'});
+                    const cropBtn = mkBtn('Crop & Download');
+                    cropBtn.addEventListener('click', () => {
+                        const ic = cssCropToImg();
+                        if (!ic||ic.w<=0||ic.h<=0) { showToast('Draw a valid crop area first.'); return; }
+                        const out = document.createElement('canvas');
+                        out.width=ic.w; out.height=ic.h;
+                        out.getContext('2d').drawImage(canvas,ic.x,ic.y,ic.w,ic.h,0,0,ic.w,ic.h);
+                        out.toBlob(blob => { download(blob,'cropped.png'); showToast('Cropped! ✅'); });
+                    });
+                    const clearBtn = mkBtn('Clear','btn btn-outline');
+                    clearBtn.addEventListener('click', () => { cropCSS=null; updateOverlay(); updateHandles(); updatePreview(); });
+                    btnRow.append(cropBtn, clearBtn);
+                    panel.appendChild(btnRow);
+                };
+            });
+        }
+
+        /* ═══════════════════════════════════════════
+           RESIZE TOOL
+        ═══════════════════════════════════════════ */
+        function initResizeTool(panel) {
+            panel.innerHTML = `<h2>📏 Resize Image</h2>`;
+            let img, previewCanvas, previewCtx;
+
+            createUploadArea(panel, 'image/*', false, files => {
+                img = new Image();
+                img.src = URL.createObjectURL(files[0]);
+                img.onload = () => {
+                    const [oW, oH] = [img.width, img.height], ratio = oW / oH;
+                    const div = document.createElement('div');
+                    div.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
+                        <div class="form-group"><label>Width (px)</label><input type="number" id="resizeW" value="${oW}" min="1" style="width:100px"></div>
+                        <div class="form-group"><label>Height (px)</label><input type="number" id="resizeH" value="${oH}" min="1" style="width:100px"></div>
+                        <div class="form-group" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="lockAspect" checked><label for="lockAspect">🔒 Lock aspect ratio</label></div>
+                    </div><button class="btn" id="resizeBtn" style="margin-top:8px">Resize & Download</button>`;
+                    panel.appendChild(div);
+
+                    const wIn = document.getElementById('resizeW'), hIn = document.getElementById('resizeH'), lock = document.getElementById('lockAspect');
+                    const previewDiv = document.createElement('div');
+                    previewDiv.style.marginTop='12px'; previewDiv.innerHTML='<strong>Preview:</strong>';
+                    previewCanvas = document.createElement('canvas');
+                    Object.assign(previewCanvas.style,{display:'block',border:'1px solid var(--border)',borderRadius:'6px',marginTop:'4px'});
+                    previewCtx = previewCanvas.getContext('2d');
+                    previewDiv.appendChild(previewCanvas); panel.appendChild(previewDiv);
+
+                    function updatePreview(w,h) {
+                        const s=Math.min(250/w,250/h,1);
+                        previewCanvas.width=w*s; previewCanvas.height=h*s;
+                        previewCtx.clearRect(0,0,previewCanvas.width,previewCanvas.height);
+                        previewCtx.drawImage(img,0,0,previewCanvas.width,previewCanvas.height);
+                    }
+                    updatePreview(oW, oH);
+
+                    wIn.addEventListener('input', () => { const w=parseInt(wIn.value)||1; if(lock.checked) hIn.value=Math.round(w/ratio); updatePreview(w,parseInt(hIn.value)||1); });
+                    hIn.addEventListener('input', () => { const h=parseInt(hIn.value)||1; if(lock.checked) wIn.value=Math.round(h*ratio); updatePreview(parseInt(wIn.value)||1,h); });
+                    lock.addEventListener('change', () => { if(lock.checked){const w=parseInt(wIn.value)||oW;hIn.value=Math.round(w/ratio);updatePreview(w,Math.round(w/ratio));} });
+                    document.getElementById('resizeBtn').addEventListener('click', () => {
+                        const w=parseInt(wIn.value)||oW, h=parseInt(hIn.value)||oH;
+                        const c=document.createElement('canvas'); c.width=w; c.height=h;
+                        c.getContext('2d').drawImage(img,0,0,w,h);
+                        c.toBlob(blob => { download(blob,'resized.png'); showToast('Resized! 📏'); });
+                    });
+                };
+            });
+        }
+
+        /* ═══════════════════════════════════════════
+           ROTATE TOOL
+        ═══════════════════════════════════════════ */
+        function initRotateTool(panel) {
+            panel.innerHTML = `<h2>🔄 Rotate & Flip</h2>`;
+            let img, canvas, originalCanvas;
+
+            function drawTo(src, deg, flip) {
+                const sw = src.width, sh = src.height;
+                const rotated = deg===90||deg===-90;
+                const c = document.createElement('canvas');
+                c.width = rotated?sh:sw; c.height = rotated?sw:sh;
+                const ctx = c.getContext('2d');
+                ctx.translate(c.width/2, c.height/2);
+                if (deg) ctx.rotate(deg*Math.PI/180);
+                if (flip==='h') ctx.scale(-1,1);
+                if (flip==='v') ctx.scale(1,-1);
+                ctx.drawImage(src,-sw/2,-sh/2);
+                return c;
+            }
+
+            function applyAndPreview(deg, flip) {
+                canvas = drawTo(img,deg,flip);
+                img = canvas;
+                const preview = document.getElementById('rotatePreview');
+                if (!preview) return;
+                preview.width=canvas.width; preview.height=canvas.height;
+                preview.getContext('2d').drawImage(canvas,0,0);
+            }
+
+            createUploadArea(panel, 'image/*', false, files => {
+                const orig = new Image();
+                orig.src = URL.createObjectURL(files[0]);
+                orig.onload = () => {
+                    originalCanvas = drawTo(orig,0,null);
+                    canvas = drawTo(orig,0,null);
+                    img = canvas;
+                    const preview = Object.assign(document.createElement('canvas'),{id:'rotatePreview'});
+                    Object.assign(preview.style,{maxWidth:'100%',borderRadius:'8px',border:'1px solid var(--border)',marginTop:'10px'});
+                    preview.width=canvas.width; preview.height=canvas.height;
+                    preview.getContext('2d').drawImage(canvas,0,0);
+                    panel.appendChild(preview);
+
+                    const row = document.createElement('div');
+                    Object.assign(row.style,{display:'flex',gap:'8px',flexWrap:'wrap',marginTop:'10px'});
+                    const btns = [
+                        ['↻ 90°','btn',()=>applyAndPreview(90,null)],
+                        ['↺ -90°','btn',()=>applyAndPreview(-90,null)],
+                        ['↕ Flip V','btn',()=>applyAndPreview(0,'v')],
+                        ['↔ Flip H','btn',()=>applyAndPreview(0,'h')],
+                        ['↩ Reset','btn btn-outline',()=>{ canvas=drawTo(originalCanvas,0,null);img=canvas;const p=document.getElementById('rotatePreview');if(p){p.width=canvas.width;p.height=canvas.height;p.getContext('2d').drawImage(canvas,0,0);} }],
+                        ['⬇ Download','btn btn-outline',()=>canvas.toBlob(blob=>{download(blob,'rotated.png');showToast('Downloaded! 🔄');})]
+                    ];
+                    btns.forEach(([text,cls,fn])=>{ const b=mkBtn(text,cls); b.addEventListener('click',fn); row.appendChild(b); });
+                    panel.appendChild(row);
+                };
+            });
+        }
+
+        /* ═══════════════════════════════════════════
+           CONVERT TOOL
+        ═══════════════════════════════════════════ */
+        function initConvertTool(panel) {
+            panel.innerHTML = `<h2>🖼️ Convert Format</h2>`;
+            let imgBitmap;
+            createUploadArea(panel, 'image/*', false, async files => {
+                imgBitmap = await createImageBitmap(files[0]);
+                const div = document.createElement('div');
+                div.innerHTML = `<div class="form-group"><label>Target Format</label>
+                    <select id="convertFormat">
+                        <option value="image/png">PNG</option><option value="image/jpeg">JPEG</option>
+                        <option value="image/webp">WebP</option><option value="image/bmp">BMP</option>
+                        <option value="application/pdf">PDF (from image)</option>
+                    </select></div>
+                    <div class="form-group" id="qualityGroup"><label>Quality (0-1)</label>
+                    <input type="number" id="quality" value="0.9" step="0.1" min="0.1" max="1"></div>
+                    <button class="btn" id="convertBtn">Convert & Download</button>`;
+                panel.appendChild(div);
+                const fmt = document.getElementById('convertFormat'), qGrp = document.getElementById('qualityGroup');
+                fmt.addEventListener('change', () => { qGrp.style.display = (fmt.value==='image/jpeg'||fmt.value==='image/webp')?'block':'none'; });
+                document.getElementById('convertBtn').addEventListener('click', async () => {
+                    const format = fmt.value;
+                    const c = document.createElement('canvas');
+                    c.width=imgBitmap.width; c.height=imgBitmap.height;
+                    c.getContext('2d').drawImage(imgBitmap,0,0);
+                    if (format==='application/pdf') {
+                        const pdfDoc = await PDFLib.PDFDocument.create();
+                        const pngBytes = await new Promise(res => c.toBlob(blob => { const r=new FileReader(); r.onload=()=>res(new Uint8Array(r.result)); r.readAsArrayBuffer(blob); },'image/png'));
+                        const img2 = await pdfDoc.embedPng(pngBytes);
+                        const page = pdfDoc.addPage([imgBitmap.width,imgBitmap.height]);
+                        page.drawImage(img2,{x:0,y:0,width:imgBitmap.width,height:imgBitmap.height});
+                        const bytes = await pdfDoc.save();
+                        download(new Blob([bytes],{type:'application/pdf'}),'converted.pdf');
+                        showToast('Converted to PDF! 📄');
+                    } else {
+                        const q = parseFloat(document.getElementById('quality').value)||0.9;
+                        c.toBlob(blob=>{ download(blob,`converted.${format.split('/')[1]}`); showToast('Format converted! 🖼️'); },format,q);
+                    }
+                });
+            });
+        }
+
+        /* ═══════════════════════════════════════════
+           MERGE IMAGES TOOL
+        ═══════════════════════════════════════════ */
+        function initMergeImgTool(panel) {
+            panel.innerHTML = `<h2>🧩 Merge Images</h2>`;
+            let images=[], mergedCanvas=null;
+            const fileListDiv = Object.assign(document.createElement('div'),{style:'margin:8px 0;font-size:.9rem'});
+
+            createUploadArea(panel,'image/*',true,async files=>{
+                images = await Promise.all(files.map(f=>createImageBitmap(f)));
+                fileListDiv.innerHTML='<strong>📁 Loaded files:</strong><br>'+files.map(f=>`• ${f.name}`).join('<br>');
+                panel.querySelector('.merged-preview')?.remove();
+                mergedCanvas=null;
+            });
+            panel.appendChild(fileListDiv);
+
+            const row=document.createElement('div');
+            Object.assign(row.style,{display:'flex',alignItems:'center',gap:'10px',margin:'12px 0',flexWrap:'wrap'});
+            const layoutSel=document.createElement('select');
+            layoutSel.innerHTML=`<option value="horizontal">Side by Side</option><option value="vertical">Stacked</option>`;
+            const mergeBtn=mkBtn('Merge & Preview'), dlBtn=mkBtn('⬇ Download','btn btn-outline');
+            row.append(Object.assign(document.createElement('span'),{textContent:'Layout:',style:'font-weight:600'}),layoutSel,mergeBtn,dlBtn);
+            panel.appendChild(row);
+
+            mergeBtn.addEventListener('click',()=>{
+                if(!images.length){showToast('Please upload images first.');return;}
+                const horiz=layoutSel.value==='horizontal';
+                let totalW=0,maxH=0;
+                images.forEach(i=>{if(horiz){totalW+=i.width;maxH=Math.max(maxH,i.height);}else{totalW=Math.max(totalW,i.width);maxH+=i.height;}});
+                mergedCanvas=document.createElement('canvas'); mergedCanvas.width=totalW; mergedCanvas.height=maxH;
+                const ctx=mergedCanvas.getContext('2d'); let x=0,y=0;
+                images.forEach(img=>{if(horiz){ctx.drawImage(img,x,(maxH-img.height)/2);x+=img.width;}else{ctx.drawImage(img,(totalW-img.width)/2,y);y+=img.height;}});
+                panel.querySelector('.merged-preview')?.remove();
+                const imgEl=document.createElement('img');
+                imgEl.src=mergedCanvas.toDataURL(); imgEl.className='merged-preview';
+                Object.assign(imgEl.style,{maxWidth:'100%',borderRadius:'8px',marginTop:'12px'});
+                panel.appendChild(imgEl);
+            });
+            dlBtn.addEventListener('click',()=>{ if(!mergedCanvas){showToast('Click "Merge & Preview" first.');return;} mergedCanvas.toBlob(blob=>{download(blob,'merged.png');showToast('Downloaded! 🧩');}); });
+        }
+
+        /* ═══════════════════════════════════════════
+           SPLIT IMAGE TOOL
+        ═══════════════════════════════════════════ */
+        function initSplitImgTool(panel) {
+            panel.innerHTML=`<h2>🔲 Split Image</h2>`;
+            let img,canvas,ctx,cropRegion=null,isDragging=false,dragStart={x:0,y:0};
+
+            function updateOverlay(){
+                const o=document.getElementById('splitOverlay');
+                if(!o)return;
+                if(cropRegion){Object.assign(o.style,{display:'block',left:cropRegion.x+'px',top:cropRegion.y+'px',width:cropRegion.w+'px',height:cropRegion.h+'px'});}
+                else o.style.display='none';
+            }
+
+            createUploadArea(panel,'image/*',false,async files=>{
+                img=new Image(); img.src=URL.createObjectURL(files[0]);
+                img.onload=()=>{
+                    canvas=document.createElement('canvas'); canvas.width=img.width; canvas.height=img.height;
+                    ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0);
+                    const ctr=Object.assign(document.createElement('div'),{style:'position:relative;display:inline-block'});
+                    const overlay=Object.assign(document.createElement('div'),{id:'splitOverlay'});
+                    Object.assign(overlay.style,{position:'absolute',border:'2px dashed #ff6b6b',display:'none'});
+                    ctr.append(canvas,overlay); panel.appendChild(ctr);
+
+                    canvas.addEventListener('mousedown',e=>{const r=canvas.getBoundingClientRect(),sX=canvas.width/r.width,sY=canvas.height/r.height;dragStart = { x: (e.clientX - r.left) * sX, y: (e.clientY - r.top) * sY }; isDragging = true;});
+                    window.addEventListener('mousemove',e=>{if(!isDragging)return;const r=canvas.getBoundingClientRect(),sX=canvas.width/r.width,sY=canvas.height/r.height,cX=(e.clientX-r.left)*sX,cY=(e.clientY-r.top)*sY;cropRegion={x:Math.min(dragStart.x,cX),y:Math.min(dragStart.y,cY),w:Math.abs(cX-dragStart.x),h:Math.abs(cY-dragStart.y)};updateOverlay();});
+                    window.addEventListener('mouseup',()=>isDragging=false);
+
+                    // Controls
+                    const div=document.createElement('div');
+                    div.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-top:12px">
+                        <div class="form-group"><label>Rows</label><input type="number" id="rows" value="2" min="1" style="width:70px"></div>
+                        <div class="form-group"><label>Cols</label><input type="number" id="cols" value="2" min="1" style="width:70px"></div>
+                        <div class="form-group"><label>Format</label><select id="sliceFormat"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></div>
+                    </div>
+                    <div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn" id="splitPreviewBtn">🔍 Preview Split</button>
+                        <button class="btn btn-outline" id="preset2x1">2×1</button>
+                        <button class="btn btn-outline" id="preset2x2">2×2</button>
+                        <button class="btn btn-outline" id="preset4x4">4×4</button>
+                        <button class="btn btn-outline" id="clearCropBtn">Clear</button>
+                        <button class="btn" id="downloadAllBtn" style="display:none">⬇ Download All</button>
+                    </div>
+                    <div class="preview-grid" id="previewGrid"></div>`;
+                    panel.appendChild(div);
+
+                    let lastSlices=[];
+                    document.getElementById('preset2x1').addEventListener('click',()=>{document.getElementById('rows').value=2;document.getElementById('cols').value=1;});
+                    document.getElementById('preset2x2').addEventListener('click',()=>{document.getElementById('rows').value=2;document.getElementById('cols').value=2;});
+                    document.getElementById('preset4x4').addEventListener('click',()=>{document.getElementById('rows').value=4;document.getElementById('cols').value=4;});
+                    document.getElementById('clearCropBtn').addEventListener('click',()=>{cropRegion=null;updateOverlay();});
+                    document.getElementById('splitPreviewBtn').addEventListener('click',()=>{
+                        const rows=parseInt(document.getElementById('rows').value)||2;
+                        const cols=parseInt(document.getElementById('cols').value)||2;
+                        const format=document.getElementById('sliceFormat').value;
+                        const reg=cropRegion||{x:0,y:0,w:img.width,h:img.height};
+                        const pW=reg.w/cols,pH=reg.h/rows;
+                        const grid=document.getElementById('previewGrid'); grid.innerHTML=''; lastSlices=[];
+                        for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+                            const sc=document.createElement('canvas'); sc.width=pW; sc.height=pH;
+                            sc.getContext('2d').drawImage(canvas,reg.x+c*pW,reg.y+r*pH,pW,pH,0,0,pW,pH);
+                            const fn=`slice_${r}_${c}.${format.split('/')[1]}`;
+                            lastSlices.push({canvas:sc,filename:fn});
+                            const ds=document.createElement('div'); ds.className='preview-slice';
+                            const imgEl=document.createElement('img'); imgEl.src=sc.toDataURL();
+                            const dlB=document.createElement('button'); dlB.textContent='⬇'; dlB.title=`Download ${fn}`;
+                            Object.assign(dlB.style,{position:'absolute',bottom:'4px',right:'4px',background:'var(--primary)',color:'#fff',border:'none',borderRadius:'4px',padding:'2px 6px',cursor:'pointer'});
+                            dlB.addEventListener('click',e=>{e.stopPropagation();sc.toBlob(blob=>download(blob,fn),format);});
+                            ds.append(imgEl,dlB); grid.appendChild(ds);
+                        }
+                        document.getElementById('downloadAllBtn').style.display='inline-block';
+                    });
+                    document.getElementById('downloadAllBtn').addEventListener('click',async()=>{
+                        for(const s of lastSlices){s.canvas.toBlob(blob=>download(blob,s.filename));await new Promise(r=>setTimeout(r,100));}
+                        showToast('All slices downloaded! 🔲');
+                    });
+                };
+            });
+        }
+
+        /* ═══════════════════════════════════════════
+           MERGE PDF TOOL
+        ═══════════════════════════════════════════ */
+        function initMergePDFTool(panel) {
+            panel.innerHTML=`<h2>📎 Merge PDFs</h2>`;
+            let pdfFiles=[],mergedBlob=null;
+            const fileListCtr=Object.assign(document.createElement('div'),{style:'margin:8px 0'});
+            const mergeBtn=Object.assign(mkBtn('Merge PDFs'),{style:'display:none'});
+            const dlBtn=Object.assign(mkBtn('⬇ Download Merged PDF','btn btn-outline'),{style:'display:none'});
+            const resultDiv=Object.assign(document.createElement('div'),{style:'margin-top:12px'});
+
+            createUploadArea(panel,'.pdf',true,async files=>{
+                pdfFiles=await Promise.all(Array.from(files).map(async f=>{
+                    let pages='?';
+                    try{const pdf=await PDFLib.PDFDocument.load(await f.arrayBuffer());pages=pdf.getPageCount();}catch(e){pages='err';}
+                    Object.defineProperty(f,'_cachedPages',{value:pages,writable:true});
+                    Object.defineProperty(f,'_blobUrl',{value:URL.createObjectURL(f),writable:true});
+                    return f;
+                }));
+                renderFileList();
+                mergeBtn.style.display='inline-block'; dlBtn.style.display='none'; mergedBlob=null; resultDiv.innerHTML='';
+            });
+
+            function renderFileList(){
+                fileListCtr.innerHTML='';
+                if(!pdfFiles.length){fileListCtr.innerHTML='<p>No PDFs loaded yet.</p>';return;}
+                const ul=document.createElement('ul');
+                Object.assign(ul.style,{listStyle:'none',padding:'0',display:'flex',flexDirection:'column',gap:'8px'});
+                pdfFiles.forEach((file,i)=>{
+                    const li=document.createElement('li');
+                    Object.assign(li.style,{display:'flex',alignItems:'center',flexWrap:'wrap',gap:'10px',padding:'8px 12px',background:'var(--surface2)',borderRadius:'8px',cursor:'grab',border:'1px solid var(--border)',transition:'background .2s'});
+                    li.draggable=true;
+                    const handle=Object.assign(document.createElement('span'),{innerHTML:'⋮⋮',style:'cursor:grab;font-size:1.2rem;color:var(--text2);user-select:none'});
+                    const info=document.createElement('span'); info.style.flex='1';
+                    info.innerHTML=`<strong>${file.name}</strong> <span style="color:var(--text2)">(${file._cachedPages} pages)</span>`;
+                    const mkNavBtn=(arrow,title,action)=>{ const b=Object.assign(document.createElement('button'),{innerHTML:arrow,className:'btn-icon',title}); Object.assign(b.style,{width:'28px',height:'28px',fontSize:'.8rem'}); b.addEventListener('click',e=>{e.stopPropagation();action();renderFileList();}); return b; };
+                    const upBtn=mkNavBtn('▲','Move up',()=>{if(i>0)[pdfFiles[i],pdfFiles[i-1]]=[pdfFiles[i-1],pdfFiles[i]];});
+                    const downBtn=mkNavBtn('▼','Move down',()=>{if(i<pdfFiles.length-1)[pdfFiles[i],pdfFiles[i+1]]=[pdfFiles[i+1],pdfFiles[i]];});
+                    const viewBtn=Object.assign(document.createElement('button'),{innerHTML:'👁️',className:'view-btn',title:'View PDF'});
+                    let viewing=false,previewDiv=null;
+                    viewBtn.addEventListener('click',e=>{ e.stopPropagation(); if(viewing){previewDiv?.remove();viewBtn.classList.remove('pulse');viewing=false;}else{previewDiv=document.createElement('div');previewDiv.className='pdf-preview';previewDiv.innerHTML=`<iframe src="${file._blobUrl}" allowfullscreen></iframe>`;li.after(previewDiv);viewBtn.classList.add('pulse');viewing=true;} });
+                    li.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',i.toString());li.style.opacity='.4';});
+                    li.addEventListener('dragend',()=>li.style.opacity='1');
+                    li.addEventListener('dragover',e=>{e.preventDefault();li.style.background='rgba(108,92,231,.1)';});
+                    li.addEventListener('dragleave',()=>li.style.background='var(--surface2)');
+                    li.addEventListener('drop',e=>{e.preventDefault();li.style.background='var(--surface2)';const from=parseInt(e.dataTransfer.getData('text/plain'));if(from!==i){const m=pdfFiles.splice(from,1)[0];pdfFiles.splice(i,0,m);renderFileList();}});
+                    li.append(handle,info,viewBtn,upBtn,downBtn); ul.appendChild(li);
+                });
+                fileListCtr.appendChild(ul);
+            }
+
+            mergeBtn.addEventListener('click',async()=>{
+                if(!pdfFiles.length){showToast('Please upload PDFs first.');return;}
+                try{
+                    const merged=await PDFLib.PDFDocument.create();
+                    for(const f of pdfFiles){const pdf=await PDFLib.PDFDocument.load(await f.arrayBuffer());(await merged.copyPages(pdf,pdf.getPageIndices())).forEach(p=>merged.addPage(p));}
+                    const bytes=await merged.save();
+                    mergedBlob=new Blob([bytes],{type:'application/pdf'});
+                    resultDiv.innerHTML=`✅ Merged PDF ready (${merged.getPageCount()} pages total)`;
+                    dlBtn.style.display='inline-block';
+                }catch(e){showToast('Error merging PDFs.');console.error(e);}
+            });
+            dlBtn.addEventListener('click',()=>{if(mergedBlob){download(mergedBlob,'merged.pdf');showToast('Downloaded! 📎');}});
+
+            panel.append(fileListCtr,mergeBtn,dlBtn,resultDiv);
+        }
+
+        /* ═══════════════════════════════════════════
+           SPLIT PDF TOOL
+        ═══════════════════════════════════════════ */
+        function initSplitPDFTool(panel) {
+            panel.innerHTML=`<h2>✂️ Split PDF</h2>`;
+            let pdfDoc=null,totalPages=0,selectedPages=new Set();
+
+            const previewCtr=document.createElement('div');
+            Object.assign(previewCtr.style,{marginTop:'12px',border:'1px solid var(--border)',borderRadius:'8px',overflow:'hidden',display:'none'});
+            const rangeInput=Object.assign(mkInput('text'),{placeholder:'e.g. 1-3,5,7-9',style:'flex:1;min-width:150px'});
+            const filenameInput=Object.assign(mkInput('text'),{placeholder:'Base filename (optional)',style:'flex:1;min-width:120px'});
+            const extractBtn=Object.assign(mkBtn('📦 Extract Pages'),{disabled:true});
+            const splitAllBtn=Object.assign(mkBtn('📄 Split into single pages','btn btn-outline'),{disabled:true});
+
+            function pagesToRange(set){
+                const s=[...set].sort((a,b)=>a-b); if(!s.length)return '';
+                const r=[];let start=s[0],end=s[0];
+                for(let i=1;i<s.length;i++){if(s[i]===end+1)end=s[i];else{r.push(start===end?`${start}`:`${start}-${end}`);start=end=s[i];}}
+                r.push(start===end?`${start}`:`${start}-${end}`); return r.join(',');
+            }
+            function parseRanges(str,max){
+                const set=new Set(); if(!str.trim())return set;
+                str.split(',').forEach(p=>{const parts=p.split('-');if(parts.length===2){const s=+parts[0],e=+parts[1];if(!isNaN(s)&&!isNaN(e))for(let i=Math.max(1,s);i<=Math.min(max,e);i++)set.add(i);}else{const n=+p;if(!isNaN(n)&&n>=1&&n<=max)set.add(n);}});
+                return set;
+            }
+
+            createUploadArea(panel,'.pdf',false,async files=>{
+                const buf=await files[0].arrayBuffer();
+                pdfDoc=await PDFLib.PDFDocument.load(buf);
+                totalPages=pdfDoc.getPageCount();
+                previewCtr.style.display='block'; previewCtr.innerHTML='';
+                const grid=Object.assign(document.createElement('div'),{style:'display:flex;flex-wrap:wrap;gap:6px;padding:12px;max-height:300px;overflow-y:auto'});
+                selectedPages.clear();
+                for(let i=1;i<=totalPages;i++){
+                    const btn=document.createElement('button');
+                    Object.assign(btn.style,{width:'36px',height:'36px',borderRadius:'6px',border:'2px solid var(--border)',background:'var(--surface2)',cursor:'pointer',fontWeight:'600'});
+                    btn.textContent=i; btn.dataset.page=i;
+                    btn.addEventListener('click',()=>{
+                        if(selectedPages.has(i)){selectedPages.delete(i);btn.style.background='var(--surface2)';btn.style.color='var(--text)';}
+                        else{selectedPages.add(i);btn.style.background='var(--primary)';btn.style.color='#fff';}
+                        rangeInput.value=pagesToRange(selectedPages);
+                    });
+                    grid.appendChild(btn);
+                }
+                previewCtr.appendChild(grid);
+                extractBtn.disabled=false; splitAllBtn.disabled=false;
+            });
+
+            rangeInput.addEventListener('input',()=>{
+                selectedPages=parseRanges(rangeInput.value,totalPages);
+                previewCtr.querySelectorAll('button[data-page]').forEach(btn=>{
+                    const p=+btn.dataset.page;
+                    btn.style.background=selectedPages.has(p)?'var(--primary)':'var(--surface2)';
+                    btn.style.color=selectedPages.has(p)?'#fff':'var(--text)';
+                });
+            });
+
+            extractBtn.addEventListener('click',async()=>{
+                if(!selectedPages.size){showToast('Select at least one page.');return;}
+                try{
+                    const np=await PDFLib.PDFDocument.create();
+                    for(const pg of [...selectedPages].sort((a,b)=>a-b)){const[c]=await np.copyPages(pdfDoc,[pg-1]);np.addPage(c);}
+                    const name=(filenameInput.value.trim()||'extracted')+'.pdf';
+                    download(new Blob([await np.save()],{type:'application/pdf'}),name);
+                    showToast('Extracted PDF downloaded!');
+                }catch(e){showToast('Error extracting pages.');console.error(e);}
+            });
+
+            splitAllBtn.addEventListener('click',async()=>{
+                const base=filenameInput.value.trim()||'page';
+                try{
+                    for(let i=1;i<=totalPages;i++){
+                        const np=await PDFLib.PDFDocument.create();
+                        const[c]=await np.copyPages(pdfDoc,[i-1]);np.addPage(c);
+                        download(new Blob([await np.save()],{type:'application/pdf'}),`${base}_${i}.pdf`);
+                        await new Promise(r=>setTimeout(r,100));
+                    }
+                    showToast('All pages downloaded as separate PDFs!');
+                }catch(e){showToast('Error splitting pages.');console.error(e);}
+            });
+
+            const row=Object.assign(document.createElement('div'),{style:'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px'});
+            row.append(rangeInput,extractBtn,splitAllBtn);
+            const fnRow=Object.assign(document.createElement('div'),{style:'margin-top:8px'});
+            fnRow.appendChild(filenameInput);
+            panel.append(previewCtr,row,fnRow);
+            panel.appendChild(document.createElement('div')).innerHTML='<small style="color:var(--text2);margin-top:8px;display:block">💡 Click page numbers to select/deselect, or type ranges. Use "Extract Pages" to download selected pages as one PDF. Use "Split into single pages" to get each page as a separate file.</small>';
+        }
+
+        /* ═══════════════════════════════════════════
+   PPT / PPTX → PDF TOOL
+═══════════════════════════════════════════ */
+const EMU_PER_INCH = 914400;
+
+function loadScriptOnce(src) {
+    return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) return resolve();
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Could not load ' + src));
+        document.head.appendChild(s);
+    });
+}
+
+async function ensureJSZip() {
+    if (!window.JSZip) await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+    if (!window.JSZip) throw new Error('JSZip unavailable (check your connection).');
+    return window.JSZip;
+}
+
+const xmlDoc      = str => new DOMParser().parseFromString(str, 'application/xml');
+const directChild = (el, tag) => el ? (Array.from(el.children).find(c => c.tagName === tag) || null) : null;
+const slideIndex  = p => parseInt((p.match(/slide(\d+)\.xml$/) || [])[1] || '0', 10);
+
+function resolveZipPath(baseDir, target) {
+    if (!target) return '';
+    if (target.startsWith('/')) return target.slice(1);
+    const out = [];
+    for (const part of (baseDir + '/' + target).split('/')) {
+        if (part === '' || part === '.') continue;
+        if (part === '..') out.pop();
+        else out.push(part);
+    }
+    return out.join('/');
+}
+
+function parseRels(xmlString) {
+    const map = {};
+    for (const rel of Array.from(xmlDoc(xmlString).getElementsByTagName('Relationship')))
+        map[rel.getAttribute('Id')] = rel.getAttribute('Target');
+    return map;
+}
+
+const fontString = seg => `${seg.italic ? 'italic ' : ''}${seg.bold ? 'bold ' : ''}${seg.size}px Arial, Helvetica, sans-serif`;
+
+/* Renders one slide's XML into a canvas. */
+async function renderSlideToCanvas(zip, slideXml, rels, baseDir, slideCx, slideCy, W, H) {
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    const doc = xmlDoc(slideXml);
+    const spTree = doc.getElementsByTagName('p:spTree')[0];
+    if (!spTree) return canvas;
+
+    const kx = W / slideCx, ky = H / slideCy;
+    const pxPerPt = kx * EMU_PER_INCH / 72;
+
+    // Slide background
+    const bg = doc.getElementsByTagName('p:bg')[0];
+    if (bg) {
+        const clr = bg.getElementsByTagName('a:srgbClr')[0];
+        if (clr) { ctx.fillStyle = '#' + clr.getAttribute('val'); ctx.fillRect(0, 0, W, H); }
+    }
+
+    await walk(spTree, { ox: 0, oy: 0, sx: 1, sy: 1 });
+    return canvas;
+
+    /* ---------- helpers ---------- */
+    function boxFromXfrm(xfrm, tr) {
+        if (!xfrm) return null;
+        const off = directChild(xfrm, 'a:off'), ext = directChild(xfrm, 'a:ext');
+        if (!off || !ext) return null;
+        const x = tr.ox + parseFloat(off.getAttribute('x')) * tr.sx;
+        const y = tr.oy + parseFloat(off.getAttribute('y')) * tr.sy;
+        const w = parseFloat(ext.getAttribute('cx')) * tr.sx;
+        const h = parseFloat(ext.getAttribute('cy')) * tr.sy;
+        return { x: x * kx, y: y * ky, w: w * kx, h: h * ky };
+    }
+
+    function groupTransform(grp, tr) {
+        const grpSpPr = grp.getElementsByTagName('p:grpSpPr')[0];
+        if (!grpSpPr) return tr;
+        const xfrm = directChild(grpSpPr, 'a:xfrm');
+        if (!xfrm) return tr;
+        const o = directChild(xfrm, 'a:off'), e = directChild(xfrm, 'a:ext');
+        const co = directChild(xfrm, 'a:chOff'), ce = directChild(xfrm, 'a:chExt');
+        if (!o || !e || !co || !ce) return tr;
+        const chCx = parseFloat(ce.getAttribute('cx')), chCy = parseFloat(ce.getAttribute('cy'));
+        if (!chCx || !chCy) return tr;
+        const rx = parseFloat(e.getAttribute('cx')) / chCx;
+        const ry = parseFloat(e.getAttribute('cy')) / chCy;
+        return {
+            ox: tr.ox + (parseFloat(o.getAttribute('x')) - parseFloat(co.getAttribute('x')) * rx) * tr.sx,
+            oy: tr.oy + (parseFloat(o.getAttribute('y')) - parseFloat(co.getAttribute('y')) * ry) * tr.sy,
+            sx: rx * tr.sx,
+            sy: ry * tr.sy
+        };
+    }
+
+    async function walk(node, tr) {
+        for (const child of Array.from(node.children)) {
+            if (child.tagName === 'p:sp')        drawShape(child, tr);
+            else if (child.tagName === 'p:pic')  await drawPic(child, tr);
+            else if (child.tagName === 'p:grpSp') await walk(child, groupTransform(child, tr));
+        }
+    }
+
+    function drawShape(sp, tr) {
+        const spPr = sp.getElementsByTagName('p:spPr')[0];
+        let box = boxFromXfrm(spPr ? directChild(spPr, 'a:xfrm') : null, tr);
+
+        // Placeholder without an explicit transform → sensible default box
+        if (!box) {
+            const ph = sp.getElementsByTagName('p:ph')[0];
+            const phType = ph ? (ph.getAttribute('type') || 'body') : null;
+            if (phType === 'title' || phType === 'ctrTitle')
+                box = { x: W * 0.08, y: H * 0.06, w: W * 0.84, h: H * 0.20 };
+            else if (phType)
+                box = { x: W * 0.08, y: H * 0.30, w: W * 0.84, h: H * 0.58 };
+        }
+
+        // Shape fill
+        if (spPr && box) {
+            const fill = directChild(spPr, 'a:solidFill');
+            const clr  = fill ? directChild(fill, 'a:srgbClr') : null;
+            if (clr) { ctx.fillStyle = '#' + clr.getAttribute('val'); ctx.fillRect(box.x, box.y, box.w, box.h); }
+        }
+
+        const txBody = sp.getElementsByTagName('p:txBody')[0];
+        if (txBody && box) drawTextBox(txBody, box);
+    }
+
+    async function drawPic(pic, tr) {
+        const spPr = pic.getElementsByTagName('p:spPr')[0];
+        const box  = boxFromXfrm(spPr ? directChild(spPr, 'a:xfrm') : null, tr);
+        const blip = pic.getElementsByTagName('a:blip')[0];
+        if (!blip) return;
+        const target = rels[blip.getAttribute('r:embed')];
+        if (!target) return;
+        const entry = zip.file(resolveZipPath(baseDir, target));
+        if (!entry) return;
+        try {
+            const bmp = await createImageBitmap(await entry.async('blob'));
+            if (box) ctx.drawImage(bmp, box.x, box.y, box.w, box.h);
+            else     ctx.drawImage(bmp, 0, 0);
+            if (bmp.close) bmp.close();
+        } catch (_) { /* EMF/WMF/SVG etc. — skip silently */ }
+    }
+
+    function wrapRuns(runs, maxW) {
+        const out = [];
+        let cur = [], curW = 0;
+        const flush = () => { out.push(cur); cur = []; curW = 0; };
+        for (const run of runs) {
+            ctx.font = fontString(run);
+            const tokens = String(run.text).split(/(\s+)/).filter(t => t !== '');
+            for (const tok of tokens) {
+                const tw = ctx.measureText(tok).width;
+                if (curW + tw > maxW && cur.length && tok.trim() !== '') flush();
+                if (!cur.length && tok.trim() === '') continue;
+                cur.push({ ...run, text: tok, w: tw });
+                curW += tw;
+            }
+        }
+        flush();
+        return out.filter(l => l.length);
+    }
+
+    function drawTextBox(txBody, box) {
+        const paras = Array.from(txBody.getElementsByTagName('a:p'));
+        if (!paras.length) return;
+        const bodyPr = txBody.getElementsByTagName('a:bodyPr')[0];
+        const anchor = bodyPr ? (bodyPr.getAttribute('anchor') || 't') : 't';
+        const pad = Math.max(4, box.w * 0.02);
+        const maxW = Math.max(box.w - pad * 2, 16);
+
+        const lines = [];
+        for (const p of paras) {
+            const pPr = directChild(p, 'a:pPr');
+            const lvl  = pPr && pPr.getAttribute('lvl') ? parseInt(pPr.getAttribute('lvl')) : 0;
+            const algn = pPr && pPr.getAttribute('algn') ? pPr.getAttribute('algn') : 'l';
+            const buChar = pPr ? directChild(pPr, 'a:buChar') : null;
+            const bullet = buChar ? (buChar.getAttribute('char') || '•') + ' ' : '';
+
+            const runs = [];
+            for (const child of Array.from(p.children)) {
+                if (child.tagName === 'a:r' || child.tagName === 'a:fld') {
+                    const rPr = directChild(child, 'a:rPr');
+                    const t   = directChild(child, 'a:t');
+                    const sz  = rPr && rPr.getAttribute('sz') ? parseInt(rPr.getAttribute('sz')) : 1800;
+                    runs.push({
+                        text: t ? t.textContent : '',
+                        size: Math.max(6, (sz / 100) * pxPerPt),
+                        bold: !!rPr && rPr.getAttribute('b') === '1',
+                        italic: !!rPr && rPr.getAttribute('i') === '1'
+                    });
+                }
+            }
+            if (bullet && runs.length) runs[0] = { ...runs[0], text: bullet + runs[0].text };
+
+            const wrapped = wrapRuns(runs, Math.max(maxW - lvl * 18, 16));
+            if (!wrapped.length) wrapped.push([]);
+            wrapped.forEach(segs => lines.push({
+                segs,
+                size: segs.reduce((m, s) => Math.max(m, s.size), 0) || pxPerPt * 18,
+                align: algn,
+                indent: lvl * 18
+            }));
+        }
+
+        const lineH = lines.map(l => l.size * 1.25);
+        const totalH = lineH.reduce((a, b) => a + b, 0);
+        let y = box.y + pad;
+        if (anchor === 'ctr')      y = box.y + (box.h - totalH) / 2;
+        else if (anchor === 'b')   y = box.y + box.h - totalH - pad;
+
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#1a1a1a';
+        lines.forEach((line, i) => {
+            const lw = line.segs.reduce((a, s) => a + s.w, 0);
+            let x = box.x + pad + line.indent;
+            if (line.align === 'ctr')      x = box.x + (box.w - lw) / 2;
+            else if (line.align === 'r')   x = box.x + box.w - pad - lw;
+            for (const seg of line.segs) {
+                ctx.font = fontString(seg);
+                ctx.fillText(seg.text, x, y);
+                x += seg.w;
+            }
+            y += lineH[i];
+        });
+    }
+}
+
+function initPptToPdfTool(panel) {
+    panel.innerHTML = `<h2>📽️ PowerPoint → PDF</h2>`;
+
+    const hint = document.createElement('p');
+    Object.assign(hint.style, { color: 'var(--text2)', fontSize: '.88rem', marginBottom: '12px' });
+    hint.innerHTML = 'Every slide becomes one PDF page — text, images, colours and their positions are rebuilt from the .pptx package. Legacy <b>.ppt</b> files must be re-saved as <b>.pptx</b> first.';
+    panel.appendChild(hint);
+
+    let pptFile = null, pdfBlob = null;
+
+    createUploadArea(panel, '.pptx', false, files => {
+        pptFile = files[0];
+        pdfBlob = null;
+        previewWrap.innerHTML = '';
+        statusEl.textContent = '';
+        dlBtn.disabled = true;
+        fileInfo.innerHTML = '📎 ';
+        const strong = document.createElement('strong');
+        strong.textContent = pptFile.name;
+        fileInfo.append(strong, document.createTextNode(` · ${(pptFile.size / 1024).toFixed(1)} KB`));
+        if (!/\.pptx$/i.test(pptFile.name)) showToast('Only .pptx files are supported.');
+    }, 'PowerPoint file (.pptx)');
+
+    const fileInfo = Object.assign(document.createElement('div'), { style: 'margin:8px 0;font-size:.9rem' });
+    panel.appendChild(fileInfo);
+
+    const opts = document.createElement('div');
+    Object.assign(opts.style, { display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'end', marginTop: '14px' });
+    opts.innerHTML = `
+        <div class="form-group"><label>Render quality</label>
+            <select id="pptScale">
+                <option value="1">Standard (1×)</option>
+                <option value="1.5" selected>High (1.5×)</option>
+                <option value="2">Very high (2×)</option>
+            </select>
+        </div>
+        <div class="form-group"><label>PDF page size</label>
+            <select id="pptPage">
+                <option value="match" selected>Match slide size</option>
+                <option value="a4l">A4 Landscape</option>
+                <option value="letterl">Letter Landscape</option>
+            </select>
+        </div>`;
+    panel.appendChild(opts);
+
+    const btnRow = Object.assign(document.createElement('div'), { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px' });
+    const convertBtn = mkBtn('🔄 Convert to PDF');
+    const dlBtn = mkBtn('⬇ Download PDF', 'btn btn-outline');
+    dlBtn.disabled = true;
+    btnRow.append(convertBtn, dlBtn);
+    panel.appendChild(btnRow);
+
+    const statusEl = Object.assign(document.createElement('div'), { style: 'margin-top:10px;font-size:.9rem;color:var(--text2)' });
+    const previewWrap = Object.assign(document.createElement('div'), { className: 'preview-grid' });
+    panel.append(statusEl, previewWrap);
+
+    convertBtn.addEventListener('click', async () => {
+        if (!pptFile) { showToast('Upload a .pptx file first.'); return; }
+        if (!/\.pptx$/i.test(pptFile.name)) { showToast('Only .pptx files are supported.'); return; }
+
+        convertBtn.disabled = true;
+        dlBtn.disabled = true;
+        pdfBlob = null;
+        previewWrap.innerHTML = '';
+
+        try {
+            statusEl.textContent = '⏳ Loading converter…';
+            const JSZip = await ensureJSZip();
+
+            statusEl.textContent = '⏳ Unpacking presentation…';
+            const zip = await JSZip.loadAsync(await pptFile.arrayBuffer());
+
+            const slidePaths = Object.keys(zip.files)
+                .filter(p => /^ppt\/slides\/slide\d+\.xml$/.test(p))
+                .sort((a, b) => slideIndex(a) - slideIndex(b));
+            if (!slidePaths.length) throw new Error('No slides found — is this a valid .pptx?');
+
+            // Slide dimensions (EMU)
+            let slideCx = 12192000, slideCy = 6858000;
+            const presEntry = zip.file('ppt/presentation.xml');
+            if (presEntry) {
+                const sldSz = xmlDoc(await presEntry.async('string')).getElementsByTagName('p:sldSz')[0];
+                if (sldSz) {
+                    slideCx = parseFloat(sldSz.getAttribute('cx')) || slideCx;
+                    slideCy = parseFloat(sldSz.getAttribute('cy')) || slideCy;
+                }
+            }
+
+            const scale = parseFloat(document.getElementById('pptScale').value) || 1.5;
+            const canvasW = Math.round(960 * scale);
+            const canvasH = Math.round(960 * scale * slideCy / slideCx);
+
+            const pageMode = document.getElementById('pptPage').value;
+            let pageW = 960, pageH = 960 * slideCy / slideCx;
+            if (pageMode === 'a4l')     { pageW = 842; pageH = 595; }
+            if (pageMode === 'letterl') { pageW = 792; pageH = 612; }
+
+            const pdfDoc = await PDFLib.PDFDocument.create();
+
+            for (let i = 0; i < slidePaths.length; i++) {
+                statusEl.textContent = `⏳ Rendering slide ${i + 1} of ${slidePaths.length}…`;
+                await new Promise(r => setTimeout(r, 0));
+
+                const path = slidePaths[i];
+                const slideXml = await zip.file(path).async('string');
+                const relsEntry = zip.file(`ppt/slides/_rels/${path.split('/').pop()}.rels`);
+                const rels = relsEntry ? parseRels(await relsEntry.async('string')) : {};
+
+                const canvas = await renderSlideToCanvas(zip, slideXml, rels, 'ppt/slides', slideCx, slideCy, canvasW, canvasH);
+
+                // Thumbnail preview
+                const thumb = document.createElement('img');
+                thumb.src = canvas.toDataURL('image/jpeg', 0.55);
+                Object.assign(thumb.style, { maxWidth: '150px', border: '1px solid var(--border)', borderRadius: '6px' });
+                previewWrap.appendChild(thumb);
+
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+                const png = await pdfDoc.embedPng(await blob.arrayBuffer());
+
+                const page = pdfDoc.addPage([pageW, pageH]);
+                const k = Math.min(pageW / canvasW, pageH / canvasH);
+                const dw = canvasW * k, dh = canvasH * k;
+                page.drawImage(png, { x: (pageW - dw) / 2, y: (pageH - dh) / 2, width: dw, height: dh });
+            }
+
+            statusEl.textContent = '⏳ Writing PDF…';
+            pdfBlob = new Blob([await pdfDoc.save()], { type: 'application/pdf' });
+            dlBtn.disabled = false;
+            statusEl.textContent = `✅ Converted ${slidePaths.length} slide${slidePaths.length > 1 ? 's' : ''} — ready to download.`;
+            showToast('PPT converted to PDF! 📽️');
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = '❌ ' + (err.message || 'Conversion failed.');
+            showToast('Conversion failed — see details in the panel.');
+        } finally {
+            convertBtn.disabled = false;
+        }
+    });
+
+    dlBtn.addEventListener('click', () => {
+        if (!pdfBlob) { showToast('Convert the file first.'); return; }
+        download(pdfBlob, pptFile.name.replace(/\.pptx$/i, '') + '.pdf');
+        showToast('Downloaded! 📽️');
+    });
+}
+
+        /* ── Boot ── */
+        initDark();
+        switchTool('crop');
+    })();
+    </script>
+</body>
+</html>
